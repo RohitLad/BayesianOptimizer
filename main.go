@@ -1,28 +1,23 @@
 package main
 
 import (
-	"BayesianOptimizer/gaussianprocesses"
+	"BayesianOptimizer/bo"
 	"fmt"
 	"math"
-	"math/rand"
 )
 
-func f(x, y float64) float64 {
-	return math.Cos(x/2)/2 + math.Sin(y/4)
+func BlackBox(x []float64) float64 {
+	return -math.Pow(x[0], 2) - math.Pow(x[1]-1, 2) + 1
 }
 
 func main() {
-	gp := gaussianprocesses.Init()
-	gp.InsertSingleInput([]float64{0.25, 0.75}, f(0.25, 0.75))
-	for i := 0; i < 200; i++ {
-		a := rand.Float64()*2*math.Pi - math.Pi
-		b := rand.Float64()*2*math.Pi - math.Pi
-		ip := []float64{a, b}
-		op := f(a, b)
-		gp.InsertSingleInput(ip, op)
-	}
-	ip := [][]float64{{0.25, 0.75}, {0.5, 0.5}}
-	mean, variance, _ := gp.Predict(ip)
-	fmt.Println("Mean: ", mean, "  variance: ", variance)
-	fmt.Println("feval: ", f(0.25, 0.75), "feval: ", f(0.5, 0.5))
+	optimizer := bo.New(BlackBox)
+	optimizer.InsertNewVariable("X", 2, 4, false)
+	optimizer.InsertNewVariable("Y", -3, 3, false)
+	//optimizer.Maximize(2, 3)
+	fmt.Println(test([]float64{0.0, 1.0}, bo.UCB{}))
+}
+
+func test(x []float64, fc bo.UtilityFunction) float64 {
+	return 0.
 }

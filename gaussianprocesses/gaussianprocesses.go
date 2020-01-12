@@ -11,14 +11,13 @@ import (
 type GP struct {
 	inputs  [][]float64
 	outputs []float64
-	kernel  kernel.ExpCov
-	Kinv    mat.Dense
-	CholK   mat.Cholesky // technically not required
+	kernel  *kernel.ExpCov
+	Kinv    *mat.Dense
 	reset   bool
 }
 
 func Init() *GP {
-	gp := GP{kernel: kernel.ExpCov{SigmaF: 1.0, L: 1.0, SigmaN: 0.0}, reset: true}
+	gp := GP{kernel: kernel.NewExpCov(1.0, 1.0, 0.0), reset: true}
 	return &gp
 }
 
@@ -40,15 +39,16 @@ func (gp *GP) InsertBulkInputs(inputs [][]float64, outputs []float64) {
 
 func (gp *GP) Train() error {
 	K := gp.kernel.CalcSymCov(gp.inputs)
-	if ok := gp.CholK.Factorize(K); !ok {
+	var CholK mat.Cholesky
+	if ok := CholK.Factorize(K); !ok {
 		return errors.Wrap(errors.New("Failed to Factorize"), "Train")
 	}
 	I := mat.NewSymDense(len(gp.inputs), nil)
 	for i := 0; i < len(gp.inputs); i++ {
 		I.SetSym(i, i, 1.0)
 	}
-	gp.Kinv = *mat.NewDense(len(gp.inputs), len(gp.inputs), nil)
-	gp.CholK.SolveTo(&gp.Kinv, I)
+	gp.Kinv = mat.NewDense(len(gp.inputs), len(gp.inputs), nil)
+	CholK.SolveTo(gp.Kinv, I)
 	gp.reset = false
 	return nil
 }
@@ -64,7 +64,7 @@ func (gp *GP) Predict(inputs [][]float64) (*mat.Dense, *mat.SymDense, error) {
 	Npredict := len(inputs)
 	N := len(gp.inputs)
 	KstKyinv := mat.NewDense(Npredict, N, nil)
-	KstKyinv.Mul(Kst.T(), &gp.Kinv)
+	KstKyinv.Mul(Kst.T(), gp.Kinv)
 	muPredict := mat.NewDense(Npredict, 1, nil)
 	muPredict.Mul(KstKyinv, ymat)
 	sigPredict := mat.NewSymDense(Npredict, nil)
