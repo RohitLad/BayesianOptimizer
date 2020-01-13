@@ -1,6 +1,8 @@
 package bo
 
-import "BayesianOptimizer/gaussianprocesses"
+import (
+	"BayesianOptimizer/gaussianprocesses"
+)
 
 type BayesianOptimizer struct {
 	Objective   func([]float64) float64
@@ -21,10 +23,19 @@ func (bo *BayesianOptimizer) InsertNewVariable(Name string, Min, Max float64, Is
 	bo.vm.InsertNewVariable(Name, Min, Max, IsInt)
 }
 
-func (bo *BayesianOptimizer) Maximize(init_points, n_iter int, util UtilityFunction) {
-	for i := 0; i < init_points; i++ {
-		sample := bo.vm.RamdomSample()
-		output := bo.Objective(sample)
-		bo.gp.InsertSingleInput(sample, output)
+func (bo *BayesianOptimizer) Maximize(init_points, n_iter int, x0 []float64, util UtilityFunction, f func([]float64) float64) error {
+	ok, err := bo.vm.VerifyBounds(x0)
+	if !ok {
+		return err
 	}
+	initFeval := f(x0)
+	bo.vm.SaveMapping(x0, initFeval)
+	for n := 0; n < n_iter; n++ {
+		x, y, err := bo.vm.PeepMapping(n)
+		if err != nil {
+			return err
+		}
+		bo.gp.InsertSingleInput(x, y)
+	}
+
 }
