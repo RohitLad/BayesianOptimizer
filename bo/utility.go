@@ -5,6 +5,10 @@ import (
 	"math"
 )
 
+// x -> point at which utility function is evaluated
+// ymax -> maximum eval yet
+// xi -> Exploration/Exploitation tradeoff param
+
 type UtilityFunction interface {
 	Estimate(x []float64, ymax, xi float64) float64
 }

@@ -2,6 +2,8 @@ package bo
 
 import (
 	"BayesianOptimizer/gaussianprocesses"
+
+	"gonum.org/v1/gonum/optimize"
 )
 
 type BayesianOptimizer struct {
@@ -36,6 +38,31 @@ func (bo *BayesianOptimizer) Maximize(init_points, n_iter int, x0 []float64, uti
 			return err
 		}
 		bo.gp.InsertSingleInput(x, y)
+
 	}
 
+}
+
+func (bo BayesianOptimizer) nextParameter(random bool, util UtilityFunction, evaluatedLoss, nRestarts int) ([]float64, error) {
+
+	minAcquisition := 1.0
+	bestSol := []float64{0.}
+
+	for i := 0; i < nRestarts; i++ {
+		startPoint := bo.vm.RamdomSample()
+		problem := optimize.Problem{
+			Func: func(x []float64) float64 {
+				return util.Estimate(x, 0., 0.) // Fill in here
+			},
+		}
+		result, err := optimize.Minimize(problem, startPoint, nil, &optimize.LBFGS{})
+		if err != nil {
+			return []float64{0.}, err
+		}
+		if result.F < minAcquisition {
+			minAcquisition = result.F
+			bestSol = result.X
+		}
+	}
+	return bestSol, nil
 }
